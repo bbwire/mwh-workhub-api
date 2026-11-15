@@ -19,6 +19,7 @@ class WorkItemResource extends JsonResource
             'title' => $this->title,
             'description' => $this->description,
             'priority' => $this->priority?->value,
+            'department_id' => $this->department_id,
             'custom_fields' => $this->custom_fields,
             'confidential' => $this->confidential,
             'due_at' => $this->due_at?->toIso8601String(),

@@ -22,6 +22,18 @@ class ActivityEventResource extends JsonResource
                 'id' => $this->causer->id,
                 'name' => $this->causer->name,
             ] : null),
+            'subject' => $this->whenLoaded('subject', function () {
+                if (! $this->subject) {
+                    return null;
+                }
+
+                return [
+                    'type' => 'work_item',
+                    'id' => $this->subject->id,
+                    'title' => $this->subject->title ?? null,
+                    'reference_number' => $this->subject->reference_number ?? null,
+                ];
+            }),
         ];
     }
 }

@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             OrganizationSeeder::class,
             WorkflowSeeder::class,
+            DemoDataSeeder::class,
         ]);
     }
 }

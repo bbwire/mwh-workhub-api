@@ -23,6 +23,8 @@ class StoreWorkItemRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'priority' => ['nullable', Rule::in(['low', 'normal', 'high', 'urgent'])],
             'due_at' => ['nullable', 'date'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'assignee_id' => ['nullable', 'integer', 'exists:users,id'],
             'custom_fields' => ['nullable', 'array'],
             'confidential' => ['nullable', 'boolean'],
         ];

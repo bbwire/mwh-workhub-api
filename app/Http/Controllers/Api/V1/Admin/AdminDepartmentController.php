@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Department;
+use App\Models\Workspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -16,9 +17,9 @@ class AdminDepartmentController extends Controller
         abort_unless($request->user()?->can('users.manage'), 403);
 
         $departments = Department::query()
-            ->where('is_active', true)
+            ->withCount('users')
             ->orderBy('name')
-            ->get(['id', 'slug', 'name', 'is_active']);
+            ->get();
 
         return response()->json(['data' => $departments]);
     }
@@ -35,9 +36,11 @@ class AdminDepartmentController extends Controller
 
         $department = Department::query()->create([
             'name' => $validated['name'],
-            'slug' => $validated['slug'] ?? Str::slug($validated['name']),
+            'slug' => $this->uniqueSlug($validated['slug'] ?? Str::slug($validated['name'])),
             'is_active' => $validated['is_active'] ?? true,
         ]);
+
+        $this->ensureWorkspace($department);
 
         return response()->json(['data' => $department], 201);
     }
@@ -54,6 +57,50 @@ class AdminDepartmentController extends Controller
 
         $department->update($validated);
 
-        return response()->json(['data' => $department]);
+        if (array_key_exists('name', $validated)) {
+            $department->workspaces()->update(['name' => $department->name]);
+        }
+        if (array_key_exists('is_active', $validated)) {
+            $department->workspaces()->update(['is_active' => $department->is_active]);
+        }
+
+        return response()->json(['data' => $department->loadCount('users')]);
+    }
+
+    private function uniqueSlug(string $base): string
+    {
+        $base = $base !== '' ? $base : 'department';
+        $slug = $base;
+        $suffix = 2;
+
+        while (Department::query()->where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    private function ensureWorkspace(Department $department): void
+    {
+        if ($department->workspaces()->exists()) {
+            return;
+        }
+
+        $base = $department->slug;
+        $slug = $base;
+        $suffix = 2;
+
+        while (Workspace::query()->where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$suffix;
+            $suffix++;
+        }
+
+        Workspace::query()->create([
+            'slug' => $slug,
+            'name' => $department->name,
+            'department_id' => $department->id,
+            'is_active' => $department->is_active,
+        ]);
     }
 }

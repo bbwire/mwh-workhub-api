@@ -5,7 +5,9 @@ use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\Admin\AdminWorkflowController;
 use App\Http\Controllers\Api\V1\Admin\AdminWorkflowDefinitionController;
 use App\Http\Controllers\Api\V1\Admin\AdminWorkTypeController;
+use App\Http\Controllers\Api\V1\ActivityLogController;
 use App\Http\Controllers\Api\V1\DepartmentActivityExportController;
+use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
@@ -32,6 +34,7 @@ use App\Http\Controllers\Api\V1\WorkItemAssigneeController;
 use App\Http\Controllers\Api\V1\WorkTypeController;
 use App\Http\Controllers\Api\V1\WorkspaceBoardController;
 use App\Http\Controllers\Api\V1\WorkspaceController;
+use App\Http\Controllers\Api\V1\WorkspaceMemberController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -46,6 +49,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/auth/user', UserController::class);
 
         Route::get('/work-types', [WorkTypeController::class, 'index']);
+        Route::get('/departments', [DepartmentController::class, 'index']);
+        Route::get('/departments/{department}', [DepartmentController::class, 'show']);
         Route::get('/my-work', MyWorkController::class);
 
         Route::get('/work-items', [WorkItemController::class, 'index']);
@@ -59,6 +64,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/work-items/{workItem}/comments', [WorkItemCommentController::class, 'index']);
         Route::post('/work-items/{workItem}/comments', [WorkItemCommentController::class, 'store']);
         Route::get('/work-items/{workItem}/activity', [WorkItemActivityController::class, 'index']);
+        Route::get('/activity', ActivityLogController::class);
         Route::get('/work-items/{workItem}/attachments', [WorkItemAttachmentController::class, 'index']);
         Route::post('/work-items/{workItem}/attachments', [WorkItemAttachmentController::class, 'store']);
         Route::get('/work-items/{workItem}/attachments/{attachment}/download', [WorkItemAttachmentController::class, 'download']);
@@ -67,6 +73,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
 
         Route::get('/workspaces', [WorkspaceController::class, 'index']);
+        Route::get('/workspaces/{workspace}/members', [WorkspaceMemberController::class, 'index']);
         Route::get('/workspaces/{workspace:slug}/board', WorkspaceBoardController::class);
 
         Route::get('/dashboards/management', ManagementDashboardController::class);

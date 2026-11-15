@@ -21,11 +21,25 @@ class UserResource extends JsonResource
             'employee_id' => $this->employee_id,
             'is_active' => $this->is_active,
             'primary_department_id' => $this->primary_department_id,
+            'is_supervisor' => $this->when(
+                $this->relationLoaded('departments'),
+                fn () => $this->departments->contains(fn ($department) => (bool) $department->pivot?->is_supervisor),
+                false,
+            ),
             'roles' => $this->getRoleNames()->values(),
             'permissions' => $this->getAllPermissions()->pluck('name')->values(),
             'department_ids' => $this->when(
                 $this->relationLoaded('departments'),
                 fn () => $this->departments->pluck('id')->values(),
+                [],
+            ),
+            'departments' => $this->when(
+                $this->relationLoaded('departments'),
+                fn () => $this->departments->map(fn ($department) => [
+                    'id' => $department->id,
+                    'slug' => $department->slug,
+                    'name' => $department->name,
+                ])->values(),
                 [],
             ),
             'workspace_ids' => $this->when(

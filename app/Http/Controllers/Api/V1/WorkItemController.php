@@ -43,6 +43,55 @@ class WorkItemController extends Controller
             $query->where('assignee_id', $request->integer('assignee_id'));
         }
 
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->integer('department_id'));
+        }
+
+        if ($request->filled('status')) {
+            $query->whereHas('status', fn ($q) => $q->where('slug', $request->string('status')));
+        }
+
+        $category = $request->string('category')->toString();
+        if (in_array($category, ['todo', 'in_progress', 'done'], true)) {
+            $query->whereHas('status', fn ($q) => $q->where('category', $category));
+
+            if ($category === 'in_progress') {
+                $query->where(function ($inner): void {
+                    $inner->whereNull('due_at')->orWhere('due_at', '>=', now());
+                });
+            }
+        }
+
+        if ($request->filled('priority')) {
+            $priorities = collect(explode(',', $request->string('priority')->toString()))
+                ->map(fn (string $value) => trim($value))
+                ->filter(fn (string $value) => in_array($value, ['low', 'normal', 'high', 'urgent'], true))
+                ->values();
+
+            if ($priorities->isNotEmpty()) {
+                $query->whereIn('priority', $priorities->all());
+            }
+        }
+
+        $search = trim($request->string('q')->toString());
+        if ($search !== '') {
+            $term = '%'.$search.'%';
+            $query->where(function ($inner) use ($term): void {
+                $inner->where('title', 'like', $term)
+                    ->orWhere('reference_number', 'like', $term)
+                    ->orWhere('description', 'like', $term);
+            });
+        }
+
+        $due = $request->string('due')->toString();
+        if ($due === 'overdue') {
+            $query->whereNotNull('due_at')
+                ->where('due_at', '<', now())
+                ->whereHas('status', fn ($q) => $q->where('is_terminal', false));
+        } elseif ($due === 'today') {
+            $query->whereBetween('due_at', [now()->startOfDay(), now()->endOfDay()]);
+        }
+
         return WorkItemResource::collection(
             $query->latest()->paginate($request->integer('per_page', 20))
         );
