@@ -31,7 +31,9 @@ class ProjectResource extends JsonResource
             ]),
             'members' => UserResource::collection($this->whenLoaded('members')),
             'milestones' => ProjectMilestoneResource::collection($this->whenLoaded('milestones')),
-            'tasks_count' => $this->when(isset($this->tasks_count), fn () => $this->tasks_count),
+            'tasks_count' => $this->when(isset($this->tasks_count), fn () => (int) $this->tasks_count),
+            'open_tasks_count' => $this->when(isset($this->open_tasks_count), fn () => (int) $this->open_tasks_count),
+            'overdue_tasks_count' => $this->when(isset($this->overdue_tasks_count), fn () => (int) $this->overdue_tasks_count),
         ];
     }
 }

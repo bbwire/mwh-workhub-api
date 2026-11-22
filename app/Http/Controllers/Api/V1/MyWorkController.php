@@ -48,6 +48,17 @@ class MyWorkController extends Controller
             ->whereIn('priority', ['high', 'urgent'])
             ->count();
 
+        $statusRows = (clone $openForMe)
+            ->join('workflow_statuses', 'workflow_statuses.id', '=', 'work_items.workflow_status_id')
+            ->selectRaw('workflow_statuses.category as category, COUNT(*) as total')
+            ->groupBy('workflow_statuses.category')
+            ->pluck('total', 'category');
+
+        $priorityRows = (clone $openForMe)
+            ->selectRaw('priority, COUNT(*) as total')
+            ->groupBy('priority')
+            ->pluck('total', 'priority');
+
         $recent = WorkItem::query()
             ->visibleTo($user)
             ->where(function ($q) use ($user): void {
@@ -81,6 +92,17 @@ class MyWorkController extends Controller
                     'overdue' => $overdue,
                     'due_today' => $dueToday,
                     'high_priority' => $highPriority,
+                ],
+                'by_status' => [
+                    ['key' => 'todo', 'label' => 'Assigned', 'value' => (int) ($statusRows['todo'] ?? 0)],
+                    ['key' => 'in_progress', 'label' => 'In Progress', 'value' => (int) ($statusRows['in_progress'] ?? 0)],
+                    ['key' => 'done', 'label' => 'Completed', 'value' => 0],
+                ],
+                'by_priority' => [
+                    ['key' => 'urgent', 'label' => 'Urgent', 'value' => (int) ($priorityRows['urgent'] ?? 0)],
+                    ['key' => 'high', 'label' => 'High', 'value' => (int) ($priorityRows['high'] ?? 0)],
+                    ['key' => 'normal', 'label' => 'Medium', 'value' => (int) ($priorityRows['normal'] ?? 0)],
+                    ['key' => 'low', 'label' => 'Low', 'value' => (int) ($priorityRows['low'] ?? 0)],
                 ],
                 'recent' => WorkItemResource::collection($recent),
                 'recent_activity' => ActivityEventResource::collection($recentActivity),

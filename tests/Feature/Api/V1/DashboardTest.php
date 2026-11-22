@@ -44,6 +44,13 @@ class DashboardTest extends TestCase
                         'overdue',
                     ],
                     'by_department',
+                    'accountability' => [
+                        'meeting_actions_open',
+                        'meeting_actions_overdue',
+                        'meetings_this_period',
+                        'projects_active',
+                        'projects_with_overdue_tasks',
+                    ],
                 ],
             ]);
     }
@@ -65,5 +72,17 @@ class DashboardTest extends TestCase
 
         $this->assertSame($dashboardCounts['total'], $reportCounts['total']);
         $this->assertSame($dashboardCounts['overdue'], $reportCounts['overdue']);
+    }
+
+    public function test_department_activity_pdf_exports(): void
+    {
+        $supervisor = User::query()->where('email', 'facilities.supervisor@mswnh.test')->firstOrFail();
+        $department = Department::query()->where('slug', 'facilities-maintenance')->firstOrFail();
+
+        $this->actingAs($supervisor);
+
+        $this->get('/api/v1/reports/department-activity/pdf?department_id='.$department->id)
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 }

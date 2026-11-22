@@ -9,7 +9,7 @@ use App\Http\Requests\Api\V1\UpdateWorkItemRequest;
 use App\Http\Resources\Api\V1\WorkItemResource;
 use App\Models\WorkItem;
 use App\Models\WorkType;
-use App\Models\WorkflowTransition;
+use App\Services\WorkItemTransitionCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -117,7 +117,7 @@ class WorkItemController extends Controller
     {
         $this->authorize('view', $workItem);
 
-        $workItem->load(['workType', 'workspace', 'status', 'requester', 'assignee']);
+        $workItem->load(['workType', 'workspace', 'status', 'requester', 'assignee', 'project', 'meetings']);
 
         return response()->json([
             'data' => WorkItemResource::make($this->withAvailableTransitions($request, $workItem)),
@@ -129,7 +129,7 @@ class WorkItemController extends Controller
         $workItem->fill($request->validated());
         $workItem->save();
 
-        $workItem->load(['workType', 'workspace', 'status', 'requester', 'assignee']);
+        $workItem->load(['workType', 'workspace', 'status', 'requester', 'assignee', 'project', 'meetings']);
 
         return response()->json([
             'data' => WorkItemResource::make($this->withAvailableTransitions($request, $workItem)),
@@ -138,26 +138,6 @@ class WorkItemController extends Controller
 
     private function withAvailableTransitions(Request $request, WorkItem $workItem): WorkItem
     {
-        $transitions = WorkflowTransition::query()
-            ->where('from_status_id', $workItem->workflow_status_id)
-            ->orderBy('slug')
-            ->get()
-            ->filter(function (WorkflowTransition $transition) use ($request): bool {
-                if ($transition->required_permission === null) {
-                    return true;
-                }
-
-                return $request->user()?->can($transition->required_permission) ?? false;
-            })
-            ->map(fn (WorkflowTransition $transition) => [
-                'slug' => $transition->slug,
-                'label' => $transition->label,
-                'requires_comment' => $transition->requires_comment,
-            ])
-            ->values();
-
-        $workItem->setAttribute('available_transitions', $transitions);
-
-        return $workItem;
+        return app(WorkItemTransitionCatalog::class)->forWorkItem($workItem, $request->user());
     }
 }

@@ -23,6 +23,7 @@ class StoreMeetingBulkActionsRequest extends FormRequest
             'actions.*.assignee_id' => ['nullable', 'integer', 'exists:users,id'],
             'actions.*.due_at' => ['nullable', 'date'],
             'actions.*.work_type_slug' => ['required', 'string'],
+            'actions.*.priority' => ['sometimes', 'string', 'in:low,normal,high,urgent'],
         ];
     }
 }

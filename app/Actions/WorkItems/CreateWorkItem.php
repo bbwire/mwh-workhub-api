@@ -91,7 +91,11 @@ class CreateWorkItem
 
             $this->activity->log($workItem, 'work_item.created', $requester, [
                 'reference_number' => $workItem->reference_number,
+                'title' => $workItem->title,
                 'work_type' => $workType->slug,
+                'work_type_name' => $workType->name,
+                'priority' => $priority->value,
+                'status_label' => $status->label,
             ]);
 
             if ($assignee !== null) {

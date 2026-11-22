@@ -52,6 +52,8 @@ class WorkflowSeeder extends Seeder
             ['in_progress', 'review', 'submit_review', 'Submit for review'],
             ['review', 'done', 'complete', 'Complete'],
             ['review', 'in_progress', 'rework', 'Rework'],
+            ['in_progress', 'backlog', 'return_to_backlog', 'Send back'],
+            ['done', 'review', 'return_to_review', 'Reopen review', null, true],
         ]);
     }
 
@@ -86,6 +88,8 @@ class WorkflowSeeder extends Seeder
 
         $this->upsertTransitions($workflow, $statuses, [
             ['submitted', 'triaged', 'triage', 'Triage'],
+            // Board users expect to move Submitted → Assigned directly.
+            ['submitted', 'assigned', 'assign_from_submitted', 'Assign', 'work.assign'],
             ['triaged', 'assigned', 'assign', 'Assign', 'work.assign'],
             ['assigned', 'in_progress', 'start_progress', 'Start progress'],
             ['in_progress', 'pending_parts', 'pending_parts', 'Pending parts'],
@@ -94,6 +98,14 @@ class WorkflowSeeder extends Seeder
             ['resolved', 'closed', 'close', 'Close'],
             ['resolved', 'reopened', 'reopen', 'Reopen', null, true],
             ['submitted', 'cancelled', 'cancel', 'Cancel'],
+            // Allow correcting mistakes by moving back on the board.
+            ['triaged', 'submitted', 'return_to_submitted', 'Send back'],
+            ['assigned', 'triaged', 'return_to_triaged', 'Send back'],
+            ['assigned', 'submitted', 'return_assigned_to_submitted', 'Send back'],
+            ['in_progress', 'assigned', 'return_to_assigned', 'Send back'],
+            ['pending_parts', 'assigned', 'return_parts_to_assigned', 'Send back'],
+            ['reopened', 'assigned', 'return_reopened_to_assigned', 'Send back'],
+            ['reopened', 'in_progress', 'resume_reopened', 'Resume progress'],
         ]);
     }
 
@@ -114,22 +126,75 @@ class WorkflowSeeder extends Seeder
             ['name' => 'ICT support default'],
         );
 
+        // Align legacy ICT labels with the shared hospital board vocabulary.
+        $this->renameStatus($workflow, 'new', 'submitted', 'Submitted');
+        $this->renameStatus($workflow, 'waiting_on_user', 'pending_parts', 'Pending parts');
+
         $statuses = $this->upsertStatuses($workflow, [
-            ['slug' => 'new', 'label' => 'New', 'sort_order' => 10, 'category' => 'todo'],
-            ['slug' => 'assigned', 'label' => 'Assigned', 'sort_order' => 20, 'category' => 'todo'],
-            ['slug' => 'in_progress', 'label' => 'In progress', 'sort_order' => 30, 'category' => 'in_progress'],
-            ['slug' => 'waiting_on_user', 'label' => 'Waiting on user', 'sort_order' => 40, 'category' => 'in_progress'],
-            ['slug' => 'resolved', 'label' => 'Resolved', 'sort_order' => 50, 'category' => 'done'],
-            ['slug' => 'closed', 'label' => 'Closed', 'sort_order' => 60, 'category' => 'done', 'is_terminal' => true],
+            ['slug' => 'submitted', 'label' => 'Submitted', 'sort_order' => 10, 'category' => 'todo'],
+            ['slug' => 'triaged', 'label' => 'Triaged', 'sort_order' => 20, 'category' => 'todo'],
+            ['slug' => 'assigned', 'label' => 'Assigned', 'sort_order' => 30, 'category' => 'todo'],
+            ['slug' => 'in_progress', 'label' => 'In progress', 'sort_order' => 40, 'category' => 'in_progress'],
+            ['slug' => 'pending_parts', 'label' => 'Pending parts', 'sort_order' => 50, 'category' => 'in_progress'],
+            ['slug' => 'resolved', 'label' => 'Resolved', 'sort_order' => 60, 'category' => 'done'],
+            ['slug' => 'closed', 'label' => 'Closed', 'sort_order' => 70, 'category' => 'done', 'is_terminal' => true],
         ]);
 
         $this->upsertTransitions($workflow, $statuses, [
-            ['new', 'assigned', 'assign', 'Assign', 'work.assign'],
+            ['submitted', 'triaged', 'triage', 'Triage'],
+            ['submitted', 'assigned', 'assign_from_submitted', 'Assign', 'work.assign'],
+            ['triaged', 'assigned', 'assign', 'Assign', 'work.assign'],
             ['assigned', 'in_progress', 'start_progress', 'Start progress'],
-            ['in_progress', 'waiting_on_user', 'wait_for_user', 'Waiting on user'],
-            ['waiting_on_user', 'in_progress', 'resume_progress', 'Resume progress'],
+            ['in_progress', 'pending_parts', 'pending_parts', 'Pending parts'],
+            ['pending_parts', 'in_progress', 'resume_progress', 'Resume progress'],
             ['in_progress', 'resolved', 'resolve', 'Resolve'],
             ['resolved', 'closed', 'close', 'Close'],
+            ['triaged', 'submitted', 'return_to_submitted', 'Send back'],
+            ['assigned', 'triaged', 'return_to_triaged', 'Send back'],
+            ['assigned', 'submitted', 'return_assigned_to_submitted', 'Send back'],
+            ['in_progress', 'assigned', 'return_to_assigned', 'Send back'],
+            ['pending_parts', 'assigned', 'return_parts_to_assigned', 'Send back'],
+            ['resolved', 'in_progress', 'return_to_in_progress', 'Reopen work', null, true],
+        ]);
+    }
+
+    private function renameStatus(Workflow $workflow, string $fromSlug, string $toSlug, string $toLabel): void
+    {
+        $from = WorkflowStatus::query()
+            ->where('workflow_id', $workflow->id)
+            ->where('slug', $fromSlug)
+            ->first();
+
+        if ($from === null) {
+            return;
+        }
+
+        $existing = WorkflowStatus::query()
+            ->where('workflow_id', $workflow->id)
+            ->where('slug', $toSlug)
+            ->first();
+
+        if ($existing) {
+            \App\Models\WorkItem::query()
+                ->where('workflow_status_id', $from->id)
+                ->update(['workflow_status_id' => $existing->id]);
+
+            WorkflowTransition::query()
+                ->where('from_status_id', $from->id)
+                ->update(['from_status_id' => $existing->id]);
+
+            WorkflowTransition::query()
+                ->where('to_status_id', $from->id)
+                ->update(['to_status_id' => $existing->id]);
+
+            $from->delete();
+
+            return;
+        }
+
+        $from->update([
+            'slug' => $toSlug,
+            'label' => $toLabel,
         ]);
     }
 

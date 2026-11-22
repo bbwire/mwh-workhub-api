@@ -98,5 +98,13 @@ class TaskDirectoryTest extends TestCase
         $this->getJson('/api/v1/activity')
             ->assertOk()
             ->assertJsonFragment(['event' => 'work_item.created']);
+
+        $this->get('/api/v1/activity/export')
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+
+        $this->get('/api/v1/activity/pdf')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 }

@@ -21,6 +21,8 @@ class StoreWorkItemCommentRequest extends FormRequest
         return [
             'body' => ['required', 'string', 'max:10000'],
             'visibility' => ['sometimes', 'string', Rule::enum(CommentVisibility::class)],
+            'mentioned_user_ids' => ['sometimes', 'array', 'max:20'],
+            'mentioned_user_ids.*' => ['integer', 'distinct', 'exists:users,id'],
         ];
     }
 

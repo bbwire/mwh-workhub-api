@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -22,6 +23,8 @@ class User extends Authenticatable
         'password',
         'phone',
         'employee_id',
+        'avatar_path',
+        'avatar_disk',
         'is_active',
         'primary_department_id',
     ];
@@ -63,5 +66,25 @@ class User extends Authenticatable
         return $this->departments()
             ->wherePivot('is_supervisor', true)
             ->pluck('departments.id');
+    }
+
+    public function avatarUrl(): ?string
+    {
+        if (! $this->avatar_path || ! $this->avatar_disk) {
+            return null;
+        }
+
+        if ($this->avatar_disk === 'public') {
+            return Storage::disk('public')->url($this->avatar_path);
+        }
+
+        return null;
+    }
+
+    public function deleteAvatarFile(): void
+    {
+        if ($this->avatar_path && $this->avatar_disk) {
+            Storage::disk($this->avatar_disk)->delete($this->avatar_path);
+        }
     }
 }

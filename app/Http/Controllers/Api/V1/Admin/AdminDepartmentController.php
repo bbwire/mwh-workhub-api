@@ -30,12 +30,14 @@ class AdminDepartmentController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:2000'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:departments,slug'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
         $department = Department::query()->create([
             'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
             'slug' => $this->uniqueSlug($validated['slug'] ?? Str::slug($validated['name'])),
             'is_active' => $validated['is_active'] ?? true,
         ]);
@@ -51,6 +53,7 @@ class AdminDepartmentController extends Controller
 
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:2000'],
             'slug' => ['sometimes', 'string', 'max:255', Rule::unique('departments', 'slug')->ignore($department->id)],
             'is_active' => ['sometimes', 'boolean'],
         ]);

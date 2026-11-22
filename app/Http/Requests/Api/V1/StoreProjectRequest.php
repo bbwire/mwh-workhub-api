@@ -22,7 +22,7 @@ class StoreProjectRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'status' => ['sometimes', Rule::enum(ProjectStatus::class)],
-            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'department_id' => ['required', 'integer', 'exists:departments,id'],
             'starts_at' => ['nullable', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'member_ids' => ['sometimes', 'array'],

@@ -22,10 +22,22 @@ class ProjectController extends Controller
 
         $projects = Project::query()
             ->visibleTo($request->user())
+            ->when(
+                $request->filled('department_id'),
+                fn ($query) => $query->where('department_id', $request->integer('department_id')),
+            )
             ->with(['owner', 'department'])
-            ->withCount('workItems as tasks_count')
+            ->withCount([
+                'workItems as tasks_count',
+                'workItems as open_tasks_count' => fn ($query) => $query
+                    ->whereHas('status', fn ($status) => $status->where('is_terminal', false)),
+                'workItems as overdue_tasks_count' => fn ($query) => $query
+                    ->whereHas('status', fn ($status) => $status->where('is_terminal', false))
+                    ->whereNotNull('due_at')
+                    ->where('due_at', '<', now()),
+            ])
             ->latest()
-            ->paginate($request->integer('per_page', 20));
+            ->paginate(min($request->integer('per_page', 20), 100));
 
         return ProjectResource::collection($projects);
     }
@@ -78,17 +90,32 @@ class ProjectController extends Controller
         $this->authorize('view', $project);
 
         $project->load(['owner', 'department', 'members', 'milestones'])
-            ->loadCount('workItems as tasks_count');
+            ->loadCount([
+                'workItems as tasks_count',
+                'workItems as open_tasks_count' => fn ($query) => $query
+                    ->whereHas('status', fn ($status) => $status->where('is_terminal', false)),
+                'workItems as overdue_tasks_count' => fn ($query) => $query
+                    ->whereHas('status', fn ($status) => $status->where('is_terminal', false))
+                    ->whereNotNull('due_at')
+                    ->where('due_at', '<', now()),
+                'workItems as done_tasks_count' => fn ($query) => $query
+                    ->whereHas('status', fn ($status) => $status->where('is_terminal', true)),
+                'workItems as in_progress_tasks_count' => fn ($query) => $query
+                    ->whereHas('status', fn ($status) => $status->where('category', 'in_progress')),
+            ]);
 
         $tasks = $project->workItems()
             ->visibleTo($request->user())
-            ->with(['workType', 'status', 'assignee'])
+            ->with(['workType', 'workspace', 'status', 'assignee', 'project'])
             ->latest()
             ->limit(50)
             ->get();
 
         return response()->json([
-            'data' => ProjectResource::make($project),
+            'data' => array_merge(ProjectResource::make($project)->resolve(), [
+                'done_tasks_count' => (int) $project->done_tasks_count,
+                'in_progress_tasks_count' => (int) $project->in_progress_tasks_count,
+            ]),
             'tasks' => WorkItemResource::collection($tasks)->resolve(),
         ]);
     }

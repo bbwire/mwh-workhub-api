@@ -62,6 +62,7 @@ class ApplyWorkItemTransition
 
             $this->activity->log($workItem, 'work_item.transitioned', $actor, [
                 'from' => $fromSlug,
+                'from_status_label' => $fromLabel,
                 'to' => $toStatus->slug,
                 'to_status_label' => $toStatus->label,
                 'transition' => $transitionSlug,

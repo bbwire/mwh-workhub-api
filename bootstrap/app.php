@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+
+        // API-only backend: never redirect to a named login route (it does not exist).
+        // Unauthenticated SPA/API calls should receive 401 JSON instead.
+        $middleware->redirectGuestsTo(fn (): ?string => null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -6,11 +6,15 @@ use App\Http\Controllers\Api\V1\Admin\AdminWorkflowController;
 use App\Http\Controllers\Api\V1\Admin\AdminWorkflowDefinitionController;
 use App\Http\Controllers\Api\V1\Admin\AdminWorkTypeController;
 use App\Http\Controllers\Api\V1\ActivityLogController;
+use App\Http\Controllers\Api\V1\ActivityLogExportController;
+use App\Http\Controllers\Api\V1\ActivityLogPdfController;
 use App\Http\Controllers\Api\V1\DepartmentActivityExportController;
+use App\Http\Controllers\Api\V1\DepartmentActivityPdfController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
+use App\Http\Controllers\Api\V1\Auth\ProfileController;
 use App\Http\Controllers\Api\V1\Auth\ResetPasswordController;
 use App\Http\Controllers\Api\V1\Auth\UserController;
 use App\Http\Controllers\Api\V1\DepartmentActivityReportController;
@@ -19,16 +23,23 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\ManagementDashboardController;
 use App\Http\Controllers\Api\V1\MeetingBulkActionsController;
 use App\Http\Controllers\Api\V1\MeetingController;
+use App\Http\Controllers\Api\V1\MeetingExportController;
+use App\Http\Controllers\Api\V1\MeetingPdfController;
 use App\Http\Controllers\Api\V1\MyWorkController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\OrganizationSettingController;
 use App\Http\Controllers\Api\V1\ProjectBoardController;
 use App\Http\Controllers\Api\V1\ProjectController;
+use App\Http\Controllers\Api\V1\ProjectExportController;
+use App\Http\Controllers\Api\V1\ProjectMilestoneController;
+use App\Http\Controllers\Api\V1\ProjectPdfController;
 use App\Http\Controllers\Api\V1\ProjectTaskController;
 use App\Http\Controllers\Api\V1\WorkItemActivityController;
 use App\Http\Controllers\Api\V1\WorkItemAttachmentController;
 use App\Http\Controllers\Api\V1\WorkItemAssignController;
 use App\Http\Controllers\Api\V1\WorkItemCommentController;
 use App\Http\Controllers\Api\V1\WorkItemController;
+use App\Http\Controllers\Api\V1\WorkItemMentionableController;
 use App\Http\Controllers\Api\V1\WorkItemTransitionController;
 use App\Http\Controllers\Api\V1\WorkItemAssigneeController;
 use App\Http\Controllers\Api\V1\WorkTypeController;
@@ -47,6 +58,14 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/auth/user', UserController::class);
+        Route::patch('/auth/profile', [ProfileController::class, 'update']);
+        Route::post('/auth/password', [ProfileController::class, 'updatePassword']);
+        Route::post('/auth/avatar', [ProfileController::class, 'uploadAvatar']);
+        Route::delete('/auth/avatar', [ProfileController::class, 'destroyAvatar']);
+        Route::get('/settings/organization', [OrganizationSettingController::class, 'show']);
+        Route::patch('/settings/organization', [OrganizationSettingController::class, 'update']);
+        Route::post('/settings/organization/logo', [OrganizationSettingController::class, 'uploadLogo']);
+        Route::delete('/settings/organization/logo', [OrganizationSettingController::class, 'destroyLogo']);
 
         Route::get('/work-types', [WorkTypeController::class, 'index']);
         Route::get('/departments', [DepartmentController::class, 'index']);
@@ -61,10 +80,13 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/work-items/{workItem}/transitions', [WorkItemTransitionController::class, 'store']);
         Route::post('/work-items/{workItem}/assign', [WorkItemAssignController::class, 'store']);
         Route::get('/work-items/{workItem}/assignees', [WorkItemAssigneeController::class, 'index']);
+        Route::get('/work-items/{workItem}/mentionables', WorkItemMentionableController::class);
         Route::get('/work-items/{workItem}/comments', [WorkItemCommentController::class, 'index']);
         Route::post('/work-items/{workItem}/comments', [WorkItemCommentController::class, 'store']);
         Route::get('/work-items/{workItem}/activity', [WorkItemActivityController::class, 'index']);
         Route::get('/activity', ActivityLogController::class);
+        Route::get('/activity/export', ActivityLogExportController::class);
+        Route::get('/activity/pdf', ActivityLogPdfController::class);
         Route::get('/work-items/{workItem}/attachments', [WorkItemAttachmentController::class, 'index']);
         Route::post('/work-items/{workItem}/attachments', [WorkItemAttachmentController::class, 'store']);
         Route::get('/work-items/{workItem}/attachments/{attachment}/download', [WorkItemAttachmentController::class, 'download']);
@@ -80,6 +102,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/dashboards/department/{department}', DepartmentDashboardController::class);
         Route::get('/reports/department-activity', DepartmentActivityReportController::class);
         Route::get('/reports/department-activity/export', DepartmentActivityExportController::class);
+        Route::get('/reports/department-activity/pdf', DepartmentActivityPdfController::class);
 
         Route::get('/meetings', [MeetingController::class, 'index']);
         Route::post('/meetings', [MeetingController::class, 'store']);
@@ -87,6 +110,8 @@ Route::prefix('v1')->group(function (): void {
         Route::patch('/meetings/{meeting}', [MeetingController::class, 'update']);
         Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy']);
         Route::post('/meetings/{meeting}/actions/bulk', [MeetingBulkActionsController::class, 'store']);
+        Route::get('/meetings/{meeting}/export', MeetingExportController::class);
+        Route::get('/meetings/{meeting}/pdf', MeetingPdfController::class);
 
         Route::get('/projects', [ProjectController::class, 'index']);
         Route::post('/projects', [ProjectController::class, 'store']);
@@ -95,10 +120,16 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);
         Route::get('/projects/{project}/board', ProjectBoardController::class);
         Route::post('/projects/{project}/tasks', [ProjectTaskController::class, 'store']);
+        Route::get('/projects/{project}/export', ProjectExportController::class);
+        Route::get('/projects/{project}/pdf', ProjectPdfController::class);
+        Route::post('/projects/{project}/milestones', [ProjectMilestoneController::class, 'store']);
+        Route::patch('/projects/{project}/milestones/{milestone}', [ProjectMilestoneController::class, 'update']);
+        Route::delete('/projects/{project}/milestones/{milestone}', [ProjectMilestoneController::class, 'destroy']);
 
         Route::get('/admin/users', [AdminUserController::class, 'index']);
         Route::post('/admin/users', [AdminUserController::class, 'store']);
         Route::patch('/admin/users/{user}', [AdminUserController::class, 'update']);
+        Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy']);
         Route::get('/admin/departments', [AdminDepartmentController::class, 'index']);
         Route::post('/admin/departments', [AdminDepartmentController::class, 'store']);
         Route::patch('/admin/departments/{department}', [AdminDepartmentController::class, 'update']);

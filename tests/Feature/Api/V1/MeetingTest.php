@@ -46,5 +46,13 @@ class MeetingTest extends TestCase
         $this->getJson("/api/v1/meetings/{$meetingId}")
             ->assertOk()
             ->assertJsonPath('action_items.0.title', 'Replace ward signage');
+
+        $this->get("/api/v1/meetings/{$meetingId}/export")
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+
+        $this->get("/api/v1/meetings/{$meetingId}/pdf")
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 }

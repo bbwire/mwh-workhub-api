@@ -102,6 +102,94 @@ class WorkItemMetricsService
         })->values();
     }
 
+    /**
+     * @return array<int, array{key: string, label: string, value: int}>
+     */
+    public function statusBreakdown(Builder $base, Carbon $from, Carbon $to): array
+    {
+        $rows = (clone $base)
+            ->whereBetween('work_items.created_at', [$from, $to])
+            ->join('workflow_statuses', 'workflow_statuses.id', '=', 'work_items.workflow_status_id')
+            ->selectRaw('workflow_statuses.category as category, COUNT(work_items.id) as total')
+            ->groupBy('workflow_statuses.category')
+            ->pluck('total', 'category');
+
+        $labels = [
+            'todo' => 'Assigned',
+            'in_progress' => 'In Progress',
+            'done' => 'Completed',
+        ];
+
+        return collect($labels)
+            ->map(fn (string $label, string $key): array => [
+                'key' => $key,
+                'label' => $label,
+                'value' => (int) ($rows[$key] ?? 0),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{key: string, label: string, value: int}>
+     */
+    public function priorityBreakdown(Builder $base, Carbon $from, Carbon $to): array
+    {
+        $open = (clone $base)
+            ->whereBetween('work_items.created_at', [$from, $to])
+            ->whereHas('status', fn (Builder $q) => $q->where('is_terminal', false));
+
+        $rows = (clone $open)
+            ->selectRaw('work_items.priority as priority, COUNT(work_items.id) as total')
+            ->groupBy('work_items.priority')
+            ->pluck('total', 'priority');
+
+        $order = [
+            'urgent' => 'Urgent',
+            'high' => 'High',
+            'normal' => 'Medium',
+            'low' => 'Low',
+        ];
+
+        return collect($order)
+            ->map(fn (string $label, string $key): array => [
+                'key' => $key,
+                'label' => $label,
+                'value' => (int) ($rows[$key] ?? 0),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{assignee_id: int|null, assignee_name: string, value: int}>
+     */
+    public function assigneeWorkload(Builder $base, Carbon $from, Carbon $to, int $limit = 8): array
+    {
+        $rows = (clone $base)
+            ->whereBetween('work_items.created_at', [$from, $to])
+            ->whereHas('status', fn (Builder $q) => $q->where('is_terminal', false))
+            ->selectRaw('work_items.assignee_id as assignee_id, COUNT(work_items.id) as total')
+            ->groupBy('work_items.assignee_id')
+            ->orderByDesc('total')
+            ->limit($limit)
+            ->get();
+
+        $names = User::query()
+            ->whereIn('id', $rows->pluck('assignee_id')->filter())
+            ->pluck('name', 'id');
+
+        return $rows->map(function ($row) use ($names): array {
+            $assigneeId = $row->assignee_id ? (int) $row->assignee_id : null;
+
+            return [
+                'assignee_id' => $assigneeId,
+                'assignee_name' => $assigneeId ? ($names[$assigneeId] ?? 'Unknown') : 'Unassigned',
+                'value' => (int) $row->total,
+            ];
+        })->values()->all();
+    }
+
     public function userCanAccessDepartment(User $user, int $departmentId): bool
     {
         if ($user->hasRole('system_admin') || $user->can('dashboard.management')) {

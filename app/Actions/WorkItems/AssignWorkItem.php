@@ -16,6 +16,9 @@ class AssignWorkItem
     public function execute(User $actor, WorkItem $workItem, ?User $assignee, ?string $reason = null): WorkItem
     {
         return DB::transaction(function () use ($actor, $workItem, $assignee, $reason): WorkItem {
+            $workItem->loadMissing('assignee');
+            $previousAssignee = $workItem->assignee;
+
             $workItem->assignee_id = $assignee?->id;
             $workItem->save();
 
@@ -29,6 +32,8 @@ class AssignWorkItem
             $this->activity->log($workItem, 'work_item.assigned', $actor, [
                 'assignee_id' => $assignee?->id,
                 'assignee_name' => $assignee?->name,
+                'previous_assignee_id' => $previousAssignee?->id,
+                'previous_assignee_name' => $previousAssignee?->name,
                 'reason' => $reason,
             ]);
 

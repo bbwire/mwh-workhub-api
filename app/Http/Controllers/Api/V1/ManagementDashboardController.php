@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\ProjectStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\ActivityEventResource;
 use App\Http\Resources\Api\V1\WorkItemResource;
 use App\Models\ActivityEvent;
+use App\Models\Meeting;
+use App\Models\Project;
 use App\Models\WorkItem;
 use App\Services\WorkItemMetricsService;
 use Illuminate\Http\JsonResponse;
@@ -45,17 +48,48 @@ class ManagementDashboardController extends Controller
             ->with('causer')
             ->get();
 
+        $from = $period['from_carbon'];
+        $to = $period['to_carbon'];
+
         return response()->json([
             'data' => [
                 'period' => [
                     'from' => $period['from'],
                     'to' => $period['to'],
                 ],
-                'counts' => $metrics->countSnapshot($base, $period['from_carbon'], $period['to_carbon']),
-                'by_department' => $metrics->departmentSummaries($base, $period['from_carbon'], $period['to_carbon']),
+                'counts' => $metrics->countSnapshot($base, $from, $to),
+                'by_department' => $metrics->departmentSummaries($base, $from, $to),
+                'by_status' => $metrics->statusBreakdown($base, $from, $to),
+                'by_priority' => $metrics->priorityBreakdown($base, $from, $to),
+                'by_assignee' => $metrics->assigneeWorkload($base, $from, $to),
                 'priority_items' => WorkItemResource::collection($priorityItems)->resolve(),
                 'recent_items' => WorkItemResource::collection($recentItems)->resolve(),
                 'recent_activity' => ActivityEventResource::collection($recentActivity)->resolve(),
+                'accountability' => [
+                    'meeting_actions_open' => WorkItem::query()
+                        ->whereHas('meetings')
+                        ->whereHas('status', fn ($q) => $q->where('is_terminal', false))
+                        ->count(),
+                    'meeting_actions_overdue' => WorkItem::query()
+                        ->whereHas('meetings')
+                        ->whereHas('status', fn ($q) => $q->where('is_terminal', false))
+                        ->whereNotNull('due_at')
+                        ->where('due_at', '<', now())
+                        ->count(),
+                    'meetings_this_period' => Meeting::query()
+                        ->whereBetween('held_at', [$from, $to])
+                        ->count(),
+                    'projects_active' => Project::query()
+                        ->where('status', ProjectStatus::Active)
+                        ->count(),
+                    'projects_with_overdue_tasks' => Project::query()
+                        ->where('status', ProjectStatus::Active)
+                        ->whereHas('workItems', fn ($q) => $q
+                            ->whereHas('status', fn ($status) => $status->where('is_terminal', false))
+                            ->whereNotNull('due_at')
+                            ->where('due_at', '<', now()))
+                        ->count(),
+                ],
             ],
         ]);
     }

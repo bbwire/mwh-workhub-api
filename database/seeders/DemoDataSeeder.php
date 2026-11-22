@@ -3,8 +3,11 @@
 namespace Database\Seeders;
 
 use App\Actions\WorkItems\CreateWorkItem;
+use App\Enums\ProjectStatus;
 use App\Models\Comment;
 use App\Models\Department;
+use App\Models\Meeting;
+use App\Models\Project;
 use App\Models\User;
 use App\Models\WorkItem;
 use App\Models\WorkflowStatus;
@@ -26,6 +29,7 @@ class DemoDataSeeder extends Seeder
         $supervisor = User::query()->where('email', 'facilities.supervisor@mswnh.test')->firstOrFail();
         $facilitiesOfficer = User::query()->where('email', 'facilities.officer@mswnh.test')->firstOrFail();
         $ictOfficer = User::query()->where('email', 'ict.officer@mswnh.test')->firstOrFail();
+        $management = User::query()->where('email', 'management@mswnh.test')->firstOrFail();
 
         $facilities = Department::query()->where('slug', 'facilities-maintenance')->firstOrFail();
         $ict = Department::query()->where('slug', 'ict')->firstOrFail();
@@ -45,7 +49,11 @@ class DemoDataSeeder extends Seeder
 
         $this->comment($printer, $facilitiesOfficer, 'I have checked the printer. It is connected but keeps throwing E03. I will restart it and clear the queue.', now()->subHours(3));
         $activity->log($printer, 'work_item.transitioned', $facilitiesOfficer, [
-            'to_status_label' => 'In progress',
+            'from' => 'assigned',
+            'from_status_label' => 'Assigned',
+            'to' => 'in_progress',
+            'to_status_label' => 'In Progress',
+            'comment' => 'Checked the printer — connected but still throwing E03.',
         ])->forceFill([
             'created_at' => now()->subHours(4),
             'updated_at' => now()->subHours(4),
@@ -161,6 +169,92 @@ class DemoDataSeeder extends Seeder
                 'title' => $printer->title,
             ],
         ]);
+
+        if (! Meeting::query()->where('title', 'Monday operations review')->exists()) {
+            $meeting = Meeting::query()->create([
+                'title' => 'Monday operations review',
+                'notes' => 'Facilities and ICT follow-ups from the weekly ops huddle.',
+                'held_at' => now()->subDays(1)->setTime(8, 30),
+                'created_by_id' => $management->id,
+            ]);
+
+            $signage = $this->open($create, $management, $maintenance, [
+                'title' => 'Replace faded ward directional signs',
+                'description' => 'Action from Monday ops review — West Wing corridor signs are unreadable.',
+                'priority' => 'normal',
+                'due_at' => now()->addDays(5)->setTime(17, 0),
+                'custom_fields' => ['location' => 'Meeting action', 'safety_hazard' => false],
+                'assignee_id' => $facilitiesOfficer->id,
+            ], $facilities, 'assigned', $facilitiesOfficer, now()->subDays(1)->setTime(9, 0));
+
+            $wifi = $this->open($create, $management, $support, [
+                'title' => 'Survey Maternity Wi-Fi dead spots',
+                'description' => 'Action from Monday ops review — midwives report dropouts near Bay 4.',
+                'priority' => 'high',
+                'due_at' => now()->subDay()->setTime(17, 0),
+                'custom_fields' => ['category' => 'network'],
+                'assignee_id' => $ictOfficer->id,
+            ], $ict, 'in_progress', $ictOfficer, now()->subDays(1)->setTime(9, 15));
+
+            $meeting->workItems()->attach([$signage->id, $wifi->id]);
+        }
+
+        if (! Project::query()->where('slug', 'oxygen-manifold-upgrade')->exists()) {
+            $project = Project::query()->create([
+                'name' => 'Oxygen manifold upgrade',
+                'slug' => 'oxygen-manifold-upgrade',
+                'description' => 'Replace Theatre 2 oxygen manifold and certify the backup cylinder bank.',
+                'status' => ProjectStatus::Active,
+                'department_id' => $facilities->id,
+                'owner_id' => $supervisor->id,
+                'starts_at' => now()->subWeeks(2),
+                'ends_at' => now()->addWeeks(6),
+            ]);
+
+            $project->members()->sync([
+                $supervisor->id => ['role' => 'lead'],
+                $facilitiesOfficer->id => ['role' => 'member'],
+            ]);
+
+            $project->milestones()->createMany([
+                [
+                    'title' => 'Site survey complete',
+                    'due_at' => now()->subWeek(),
+                    'completed_at' => now()->subDays(5),
+                    'sort_order' => 10,
+                ],
+                [
+                    'title' => 'Parts on site',
+                    'due_at' => now()->addDays(10),
+                    'completed_at' => null,
+                    'sort_order' => 20,
+                ],
+                [
+                    'title' => 'Commissioning & sign-off',
+                    'due_at' => now()->addWeeks(5),
+                    'completed_at' => null,
+                    'sort_order' => 30,
+                ],
+            ]);
+
+            $projectType = WorkType::query()->where('slug', 'project_task')->firstOrFail();
+
+            $this->open($create, $supervisor, $projectType, [
+                'title' => 'Isolate Theatre 2 oxygen line for works',
+                'description' => 'Coordinate with theatre in-charge before isolation.',
+                'priority' => 'high',
+                'due_at' => now()->addDays(3)->setTime(17, 0),
+                'project_id' => $project->id,
+            ], $facilities, 'in_progress', $facilitiesOfficer, now()->subDays(3)->setTime(11, 0));
+
+            $this->open($create, $supervisor, $projectType, [
+                'title' => 'Order certified manifold kit',
+                'description' => 'Use the approved supplier list and confirm lead time.',
+                'priority' => 'normal',
+                'due_at' => now()->addDays(7)->setTime(17, 0),
+                'project_id' => $project->id,
+            ], $facilities, 'backlog', $facilitiesOfficer, now()->subDays(2)->setTime(14, 0));
+        }
     }
 
     /**

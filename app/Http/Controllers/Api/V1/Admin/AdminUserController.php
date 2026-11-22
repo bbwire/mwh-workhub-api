@@ -132,6 +132,27 @@ class AdminUserController extends Controller
         ]);
     }
 
+    public function destroy(Request $request, User $user): JsonResponse
+    {
+        abort_unless($request->user()?->can('users.manage'), 403);
+
+        if ($request->user()?->id === $user->id) {
+            throw ValidationException::withMessages([
+                'user' => ['You cannot delete your own account.'],
+            ]);
+        }
+
+        // Soft-delete: deactivate so historical work stays attributed.
+        $user->is_active = false;
+        $user->save();
+
+        $user->load(['roles', 'permissions', 'departments', 'workspaces']);
+
+        return response()->json([
+            'data' => UserResource::make($user),
+        ]);
+    }
+
     private function syncDepartment(User $user, ?int $departmentId, bool $supervisor): void
     {
         if ($departmentId !== null) {

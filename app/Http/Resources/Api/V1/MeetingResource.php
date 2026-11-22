@@ -19,11 +19,15 @@ class MeetingResource extends JsonResource
             'notes' => $this->notes,
             'held_at' => $this->held_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
-            'creator' => $this->whenLoaded('creator', fn () => [
+            'creator' => $this->whenLoaded('creator', fn () => $this->creator ? [
                 'id' => $this->creator->id,
                 'name' => $this->creator->name,
-            ]),
-            'action_items_count' => $this->whenCounted('workItems'),
+            ] : null),
+            'action_items_count' => $this->when(isset($this->work_items_count) || isset($this->action_items_count), function () {
+                return (int) ($this->action_items_count ?? $this->work_items_count ?? 0);
+            }),
+            'open_actions_count' => $this->when(isset($this->open_actions_count), fn () => (int) $this->open_actions_count),
+            'overdue_actions_count' => $this->when(isset($this->overdue_actions_count), fn () => (int) $this->overdue_actions_count),
         ];
     }
 }

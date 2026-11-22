@@ -55,6 +55,8 @@ class WorkItemAttachmentController extends Controller
         $this->activity->log($workItem, 'work_item.attachment_uploaded', $request->user(), [
             'attachment_id' => $attachment->id,
             'original_name' => $attachment->original_name,
+            'mime_type' => $attachment->mime_type,
+            'size_bytes' => $attachment->size_bytes,
         ]);
 
         return response()->json([

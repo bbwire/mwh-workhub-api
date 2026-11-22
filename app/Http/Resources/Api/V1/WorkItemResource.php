@@ -38,11 +38,23 @@ class WorkItemResource extends JsonResource
                 'name' => $this->workspace->name,
             ]),
             'project_id' => $this->project_id,
-            'project' => $this->whenLoaded('project', fn () => [
+            'project' => $this->whenLoaded('project', fn () => $this->project ? [
                 'id' => $this->project->id,
                 'slug' => $this->project->slug,
                 'name' => $this->project->name,
-            ]),
+            ] : null),
+            'meeting' => $this->when(
+                $this->relationLoaded('meetings'),
+                function () {
+                    $meeting = $this->meetings->first();
+
+                    return $meeting ? [
+                        'id' => $meeting->id,
+                        'title' => $meeting->title,
+                        'held_at' => $meeting->held_at?->toIso8601String(),
+                    ] : null;
+                }
+            ),
             'status' => $this->whenLoaded('status', fn () => [
                 'id' => $this->status->id,
                 'slug' => $this->status->slug,

@@ -7,13 +7,17 @@ use App\Http\Resources\Api\V1\WorkItemResource;
 use App\Models\Project;
 use App\Models\WorkItem;
 use App\Models\WorkflowStatus;
+use App\Services\WorkItemTransitionCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProjectBoardController extends Controller
 {
-    public function __invoke(Request $request, Project $project): JsonResponse
-    {
+    public function __invoke(
+        Request $request,
+        Project $project,
+        WorkItemTransitionCatalog $transitions,
+    ): JsonResponse {
         $this->authorize('view', $project);
 
         $statuses = WorkflowStatus::query()
@@ -25,9 +29,10 @@ class ProjectBoardController extends Controller
         $items = WorkItem::query()
             ->where('project_id', $project->id)
             ->visibleTo($request->user())
-            ->with(['workType', 'workspace', 'status', 'requester', 'assignee'])
-            ->get()
-            ->groupBy('workflow_status_id');
+            ->with(['workType', 'workspace', 'status', 'requester', 'assignee', 'project'])
+            ->get();
+
+        $items = $transitions->attachAvailable($items, $request->user())->groupBy('workflow_status_id');
 
         $columns = $statuses->map(function (WorkflowStatus $status) use ($items) {
             $columnItems = $items->get($status->id, collect());
@@ -38,9 +43,12 @@ class ProjectBoardController extends Controller
                     'slug' => $status->slug,
                     'label' => $status->label,
                     'category' => $status->category,
+                    'is_terminal' => (bool) $status->is_terminal,
                 ],
                 'items' => WorkItemResource::collection($columnItems)->resolve(),
             ];
+        })->filter(function (array $column) {
+            return count($column['items']) > 0 || ! $column['status']['is_terminal'];
         })->values();
 
         return response()->json([

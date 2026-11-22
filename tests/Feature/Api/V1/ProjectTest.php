@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Models\Department;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,12 +22,14 @@ class ProjectTest extends TestCase
     {
         $supervisor = User::query()->where('email', 'facilities.supervisor@mswnh.test')->firstOrFail();
         $officer = User::query()->where('email', 'facilities.officer@mswnh.test')->firstOrFail();
+        $department = Department::query()->where('slug', 'facilities-maintenance')->firstOrFail();
 
         $this->actingAs($supervisor);
 
         $projectId = $this->postJson('/api/v1/projects', [
             'name' => 'Ward renovation',
             'description' => 'Phase 1 upgrades',
+            'department_id' => $department->id,
             'member_ids' => [$officer->id],
             'milestones' => [
                 ['title' => 'Design sign-off', 'due_at' => now()->addMonth()->toIso8601String()],
@@ -54,6 +57,18 @@ class ProjectTest extends TestCase
             ->assertJsonPath('data.project.id', $projectId)
             ->assertJsonStructure(['data' => ['columns']]);
 
+        $this->postJson("/api/v1/projects/{$projectId}/milestones", [
+            'title' => 'Handover',
+        ])->assertCreated();
+
+        $this->get("/api/v1/projects/{$projectId}/export")
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+
+        $this->get("/api/v1/projects/{$projectId}/pdf")
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
         $this->actingAs($officer);
 
         $this->getJson("/api/v1/projects/{$projectId}")
@@ -67,8 +82,11 @@ class ProjectTest extends TestCase
 
         $this->actingAs($supervisor);
 
+        $department = Department::query()->where('slug', 'facilities-maintenance')->firstOrFail();
+
         $projectId = $this->postJson('/api/v1/projects', [
             'name' => 'Private initiative',
+            'department_id' => $department->id,
         ])->assertCreated()->json('data.id');
 
         $this->actingAs($staff);

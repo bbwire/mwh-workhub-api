@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Department;
+use App\Models\OrganizationSetting;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Database\Seeder;
@@ -12,6 +13,17 @@ class OrganizationSeeder extends Seeder
 {
     public function run(): void
     {
+        OrganizationSetting::current()->update([
+            'name' => 'Mulago Specialized Womens and Neonatal Hospital',
+            'short_name' => 'MWH WorkHub',
+            'tagline' => 'Hospital operations',
+            'email' => 'operations@mswnh.test',
+            'phone' => '+256 414 554 000',
+            'website' => null,
+            'address' => 'Mulago Hill, Kampala, Uganda',
+            'report_footer' => 'Confidential — for official hospital use only',
+        ]);
+
         $facilitiesDept = Department::query()->updateOrCreate(
             ['slug' => 'facilities-maintenance'],
             ['name' => 'Facilities and Maintenance', 'is_active' => true],

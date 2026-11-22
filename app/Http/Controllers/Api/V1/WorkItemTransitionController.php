@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\TransitionWorkItemRequest;
 use App\Http\Resources\Api\V1\WorkItemResource;
 use App\Models\WorkItem;
+use App\Services\WorkItemTransitionCatalog;
 use Illuminate\Http\JsonResponse;
 
 class WorkItemTransitionController extends Controller
@@ -15,6 +16,7 @@ class WorkItemTransitionController extends Controller
         TransitionWorkItemRequest $request,
         WorkItem $workItem,
         ApplyWorkItemTransition $applyTransition,
+        WorkItemTransitionCatalog $transitions,
     ): JsonResponse {
         $workItem = $applyTransition->execute(
             $request->user(),
@@ -22,6 +24,8 @@ class WorkItemTransitionController extends Controller
             $request->string('transition')->toString(),
             $request->input('comment'),
         );
+
+        $workItem = $transitions->forWorkItem($workItem, $request->user());
 
         return response()->json([
             'data' => WorkItemResource::make($workItem),
