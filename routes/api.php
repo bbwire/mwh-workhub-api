@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AdminDepartmentController;
+use App\Http\Controllers\Api\V1\Admin\AdminRoleController;
 use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\Admin\AdminWorkflowController;
 use App\Http\Controllers\Api\V1\Admin\AdminWorkflowDefinitionController;
@@ -21,11 +22,15 @@ use App\Http\Controllers\Api\V1\DepartmentActivityReportController;
 use App\Http\Controllers\Api\V1\DepartmentDashboardController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\ManagementDashboardController;
+use App\Http\Controllers\Api\V1\MeetingAttachmentController;
 use App\Http\Controllers\Api\V1\MeetingBulkActionsController;
 use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\MeetingExportController;
+use App\Http\Controllers\Api\V1\MeetingMinutesPdfController;
 use App\Http\Controllers\Api\V1\MeetingPdfController;
 use App\Http\Controllers\Api\V1\MyWorkController;
+use App\Http\Controllers\Api\V1\MyWorkExportController;
+use App\Http\Controllers\Api\V1\MyWorkPdfController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrganizationSettingController;
 use App\Http\Controllers\Api\V1\ProjectBoardController;
@@ -71,6 +76,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/departments', [DepartmentController::class, 'index']);
         Route::get('/departments/{department}', [DepartmentController::class, 'show']);
         Route::get('/my-work', MyWorkController::class);
+        Route::get('/my-work/export', MyWorkExportController::class);
+        Route::get('/my-work/pdf', MyWorkPdfController::class);
 
         Route::get('/work-items', [WorkItemController::class, 'index']);
         Route::post('/work-items', [WorkItemController::class, 'store']);
@@ -112,6 +119,11 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/meetings/{meeting}/actions/bulk', [MeetingBulkActionsController::class, 'store']);
         Route::get('/meetings/{meeting}/export', MeetingExportController::class);
         Route::get('/meetings/{meeting}/pdf', MeetingPdfController::class);
+        Route::get('/meetings/{meeting}/minutes/pdf', MeetingMinutesPdfController::class);
+        Route::get('/meetings/{meeting}/attachments', [MeetingAttachmentController::class, 'index']);
+        Route::post('/meetings/{meeting}/attachments', [MeetingAttachmentController::class, 'store']);
+        Route::get('/meetings/{meeting}/attachments/{attachment}/download', [MeetingAttachmentController::class, 'download']);
+        Route::delete('/meetings/{meeting}/attachments/{attachment}', [MeetingAttachmentController::class, 'destroy']);
 
         Route::get('/projects', [ProjectController::class, 'index']);
         Route::post('/projects', [ProjectController::class, 'store']);
@@ -130,11 +142,17 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/admin/users', [AdminUserController::class, 'store']);
         Route::patch('/admin/users/{user}', [AdminUserController::class, 'update']);
         Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy']);
+        Route::get('/admin/roles', [AdminRoleController::class, 'index']);
+        Route::post('/admin/roles', [AdminRoleController::class, 'store']);
+        Route::patch('/admin/roles/{role}', [AdminRoleController::class, 'update']);
+        Route::delete('/admin/roles/{role}', [AdminRoleController::class, 'destroy']);
         Route::get('/admin/departments', [AdminDepartmentController::class, 'index']);
         Route::post('/admin/departments', [AdminDepartmentController::class, 'store']);
         Route::patch('/admin/departments/{department}', [AdminDepartmentController::class, 'update']);
         Route::get('/admin/work-types', [AdminWorkTypeController::class, 'index']);
+        Route::post('/admin/work-types', [AdminWorkTypeController::class, 'store']);
         Route::patch('/admin/work-types/{workType}', [AdminWorkTypeController::class, 'update']);
+        Route::delete('/admin/work-types/{workType}', [AdminWorkTypeController::class, 'destroy']);
         Route::get('/admin/workflows', [AdminWorkflowController::class, 'index']);
         Route::post('/admin/workflows', [AdminWorkflowController::class, 'store']);
         Route::get('/admin/workflows/{workflow}', [AdminWorkflowController::class, 'show']);

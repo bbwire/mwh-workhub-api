@@ -14,7 +14,7 @@ class WorkItemPolicy
 
     public function view(User $user, WorkItem $workItem): bool
     {
-        if ($user->hasRole('system_admin') || $user->can('dashboard.management')) {
+        if ($user->hasRole('super_admin') || $user->can('dashboard.management')) {
             return true;
         }
 
@@ -40,7 +40,7 @@ class WorkItemPolicy
 
     public function update(User $user, WorkItem $workItem): bool
     {
-        if ($user->hasRole('system_admin')) {
+        if ($user->hasRole('super_admin')) {
             return true;
         }
 

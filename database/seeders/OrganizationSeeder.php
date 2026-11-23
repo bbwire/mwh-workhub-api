@@ -52,12 +52,12 @@ class OrganizationSeeder extends Seeder
         $admin = User::query()->updateOrCreate(
             ['email' => 'admin@mswnh.test'],
             [
-                'name' => 'System Administrator',
+                'name' => 'Super Administrator',
                 'password' => Hash::make('password'),
                 'is_active' => true,
             ],
         );
-        $admin->syncRoles(['system_admin']);
+        $admin->syncRoles(['super_admin']);
 
         $management = User::query()->updateOrCreate(
             ['email' => 'management@mswnh.test'],

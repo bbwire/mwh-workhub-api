@@ -20,7 +20,7 @@ class WorkspaceBoardController extends Controller
     ): JsonResponse {
         $user = $request->user();
 
-        if (! $user->hasRole('system_admin') && ! $user->can('dashboard.management')) {
+        if (! $user->hasRole('super_admin') && ! $user->can('dashboard.management')) {
             abort_unless(
                 $user->workspaces()->where('workspaces.id', $workspace->id)->exists()
                     || ($workspace->department_id && $user->supervisedDepartmentIds()->contains($workspace->department_id)),

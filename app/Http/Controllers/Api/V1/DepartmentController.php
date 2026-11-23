@@ -22,7 +22,7 @@ class DepartmentController extends Controller
 
         $requestDirectory = $request->query('purpose') === 'request' && $user->can('work.create');
 
-        if (! $requestDirectory && ! $user->hasRole('system_admin') && ! $user->can('dashboard.management')) {
+        if (! $requestDirectory && ! $user->hasRole('super_admin') && ! $user->can('dashboard.management')) {
             $query->whereIn('id', $user->departments()->pluck('departments.id'));
         }
 
@@ -56,6 +56,7 @@ class DepartmentController extends Controller
             'id' => $department->id,
             'slug' => $department->slug,
             'name' => $department->name,
+            'description' => $department->description,
             'member_count' => (int) ($department->users_count ?? 0),
             'workspaces' => $department->workspaces->map(fn ($workspace) => [
                 'id' => $workspace->id,

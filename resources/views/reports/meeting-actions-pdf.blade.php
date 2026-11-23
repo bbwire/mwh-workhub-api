@@ -20,6 +20,12 @@
     <p class="meta">
         Meeting actions · Held {{ $meeting->held_at?->format('Y-m-d H:i') }} · Generated {{ now()->format('Y-m-d H:i') }}
     </p>
+    @if (filled($meeting->minutes))
+        <h2 style="font-size: 13px; margin: 0 0 6px; color: #0f2744;">Minutes</h2>
+        <div style="margin-bottom: 16px; line-height: 1.45;">
+            {!! $meeting->minutes !!}
+        </div>
+    @endif
     @if ($items->isEmpty())
         <p class="empty">No action items for this meeting.</p>
     @else

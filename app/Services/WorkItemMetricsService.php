@@ -192,7 +192,7 @@ class WorkItemMetricsService
 
     public function userCanAccessDepartment(User $user, int $departmentId): bool
     {
-        if ($user->hasRole('system_admin') || $user->can('dashboard.management')) {
+        if ($user->hasRole('super_admin') || $user->can('dashboard.management')) {
             return true;
         }
 

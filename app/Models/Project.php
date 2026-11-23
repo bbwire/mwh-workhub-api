@@ -60,7 +60,7 @@ class Project extends Model
 
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        if ($user->hasRole('system_admin') || $user->can('dashboard.management') || $user->can('projects.manage')) {
+        if ($user->hasRole('super_admin') || $user->can('dashboard.management') || $user->can('projects.manage')) {
             return $query;
         }
 

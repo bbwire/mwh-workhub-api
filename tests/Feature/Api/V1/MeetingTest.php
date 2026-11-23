@@ -28,7 +28,18 @@ class MeetingTest extends TestCase
             'title' => 'Monthly ops review',
             'held_at' => now()->toIso8601String(),
             'notes' => 'Track facility actions.',
-        ])->assertCreated()->json('data.id');
+            'minutes' => '<p>Discussed ward readiness and outstanding maintenance tickets.</p>',
+        ])->assertCreated()
+            ->assertJsonPath('data.minutes', '<p>Discussed ward readiness and outstanding maintenance tickets.</p>')
+            ->json('data.id');
+
+        $this->patchJson("/api/v1/meetings/{$meetingId}", [
+            'title' => 'Monthly ops review',
+            'held_at' => now()->toIso8601String(),
+            'minutes' => '<p>Updated minutes with closing actions.</p>',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.minutes', '<p>Updated minutes with closing actions.</p>');
 
         $this->postJson("/api/v1/meetings/{$meetingId}/actions/bulk", [
             'actions' => [
@@ -52,6 +63,10 @@ class MeetingTest extends TestCase
             ->assertHeader('content-type', 'text/csv; charset=UTF-8');
 
         $this->get("/api/v1/meetings/{$meetingId}/pdf")
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->get("/api/v1/meetings/{$meetingId}/minutes/pdf")
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
     }

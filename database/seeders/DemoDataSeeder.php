@@ -174,6 +174,7 @@ class DemoDataSeeder extends Seeder
             $meeting = Meeting::query()->create([
                 'title' => 'Monday operations review',
                 'notes' => 'Facilities and ICT follow-ups from the weekly ops huddle.',
+                'minutes' => '<p>Opened with ward readiness check. Facilities to chase overdue maintenance tickets; ICT to confirm network patch window.</p><ul><li>Confirm generator test run</li><li>Clear ICT backlog for maternity wing printers</li></ul>',
                 'held_at' => now()->subDays(1)->setTime(8, 30),
                 'created_by_id' => $management->id,
             ]);

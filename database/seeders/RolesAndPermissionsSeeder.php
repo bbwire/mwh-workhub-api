@@ -39,7 +39,7 @@ class RolesAndPermissionsSeeder extends Seeder
         }
 
         $matrix = [
-            'system_admin' => $permissions,
+            'super_admin' => $permissions,
             'hospital_management' => [
                 'dashboard.management',
                 'dashboard.department',
@@ -70,6 +70,16 @@ class RolesAndPermissionsSeeder extends Seeder
                 'work.view.team',
             ],
         ];
+
+        $legacy = Role::query()
+            ->where('name', 'system_admin')
+            ->where('guard_name', 'web')
+            ->first();
+
+        if ($legacy) {
+            $legacy->name = 'super_admin';
+            $legacy->save();
+        }
 
         foreach ($matrix as $roleName => $rolePermissions) {
             $role = Role::query()->firstOrCreate(

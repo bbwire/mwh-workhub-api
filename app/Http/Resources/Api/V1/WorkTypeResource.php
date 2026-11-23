@@ -21,6 +21,7 @@ class WorkTypeResource extends JsonResource
             'workspace_id' => $this->workspace_id,
             'form_schema' => $this->form_schema,
             'is_active' => $this->is_active,
+            'work_items_count' => $this->when(isset($this->work_items_count), fn () => (int) $this->work_items_count),
             'workspace' => $this->whenLoaded('workspace', fn () => [
                 'id' => $this->workspace->id,
                 'slug' => $this->workspace->slug,

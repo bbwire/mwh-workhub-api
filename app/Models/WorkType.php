@@ -31,6 +31,11 @@ class WorkType extends Model
         return $this->belongsTo(Workspace::class);
     }
 
+    public function workItems(): HasMany
+    {
+        return $this->hasMany(WorkItem::class);
+    }
+
     public function workflows(): HasMany
     {
         return $this->hasMany(Workflow::class);

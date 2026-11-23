@@ -18,7 +18,7 @@ class ProjectPolicy
             return false;
         }
 
-        if ($user->hasRole('system_admin') || $user->can('dashboard.management') || $user->can('projects.manage')) {
+        if ($user->hasRole('super_admin') || $user->can('dashboard.management') || $user->can('projects.manage')) {
             return true;
         }
 
@@ -32,7 +32,7 @@ class ProjectPolicy
 
     public function update(User $user, Project $project): bool
     {
-        if ($user->can('projects.manage') || $user->hasRole('system_admin')) {
+        if ($user->can('projects.manage') || $user->hasRole('super_admin')) {
             return true;
         }
 
@@ -41,7 +41,7 @@ class ProjectPolicy
 
     public function delete(User $user, Project $project): bool
     {
-        return $user->can('projects.manage') || $user->hasRole('system_admin');
+        return $user->can('projects.manage') || $user->hasRole('super_admin');
     }
 
     public function manageTasks(User $user, Project $project): bool

@@ -20,7 +20,7 @@ class ActivityLogQuery
             ->with(['causer', 'subject'])
             ->where('subject_type', $morph)
             ->when(
-                ! $user->hasRole('system_admin') && ! $user->can('dashboard.management'),
+                ! $user->hasRole('super_admin') && ! $user->can('dashboard.management'),
                 fn (Builder $query) => $query->whereIn(
                     'subject_id',
                     WorkItem::query()->visibleTo($user)->select('id'),

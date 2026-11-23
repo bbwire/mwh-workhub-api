@@ -35,7 +35,7 @@ class Comment extends Model
 
     public function scopeVisibleToUser(Builder $query, User $user, WorkItem $workItem): Builder
     {
-        if ($user->hasRole('system_admin') || $user->can('dashboard.management')) {
+        if ($user->hasRole('super_admin') || $user->can('dashboard.management')) {
             return $query;
         }
 

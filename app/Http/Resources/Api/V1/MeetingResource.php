@@ -17,6 +17,7 @@ class MeetingResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'notes' => $this->notes,
+            'minutes' => $this->minutes,
             'held_at' => $this->held_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
             'creator' => $this->whenLoaded('creator', fn () => $this->creator ? [

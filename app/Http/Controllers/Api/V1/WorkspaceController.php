@@ -15,7 +15,7 @@ class WorkspaceController extends Controller
 
         $query = Workspace::query()->where('is_active', true)->orderBy('name');
 
-        if (! $user->hasRole('system_admin') && ! $user->can('dashboard.management')) {
+        if (! $user->hasRole('super_admin') && ! $user->can('dashboard.management')) {
             $workspaceIds = $user->workspaces()->pluck('workspaces.id');
             $supervisedDepartmentIds = $user->supervisedDepartmentIds();
 

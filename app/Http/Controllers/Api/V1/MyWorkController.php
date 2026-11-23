@@ -7,6 +7,7 @@ use App\Http\Resources\Api\V1\ActivityEventResource;
 use App\Http\Resources\Api\V1\WorkItemResource;
 use App\Models\ActivityEvent;
 use App\Models\WorkItem;
+use App\Support\MyWorkQuery;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,13 +28,7 @@ class MyWorkController extends Controller
             ->where('requester_id', $user->id)
             ->count();
 
-        $openForMe = WorkItem::query()
-            ->visibleTo($user)
-            ->where(function (Builder $q) use ($user): void {
-                $q->where('assignee_id', $user->id)
-                    ->orWhere('requester_id', $user->id);
-            })
-            ->whereHas('status', fn (Builder $q) => $q->where('is_terminal', false));
+        $openForMe = MyWorkQuery::openFor($user);
 
         $overdue = (clone $openForMe)
             ->whereNotNull('due_at')

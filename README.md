@@ -56,7 +56,7 @@ MAIL_PORT=1025
 
 | Email | Role |
 |-------|------|
-| admin@mswnh.test | system_admin |
+| admin@mswnh.test | super_admin |
 | management@mswnh.test | hospital_management |
 | facilities.supervisor@mswnh.test | department_supervisor |
 | facilities.officer@mswnh.test | staff (Facilities workspace) |

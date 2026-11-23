@@ -39,6 +39,10 @@ class WorkItemController extends Controller
             });
         }
 
+        if ($request->boolean('open')) {
+            $query->whereHas('status', fn ($q) => $q->where('is_terminal', false));
+        }
+
         if ($request->filled('assignee_id')) {
             $query->where('assignee_id', $request->integer('assignee_id'));
         }

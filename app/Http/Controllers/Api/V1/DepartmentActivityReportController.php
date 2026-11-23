@@ -32,11 +32,11 @@ class DepartmentActivityReportController extends Controller
 
         $base = $metrics->scopedQuery($user, $department->id);
 
-        $items = (clone $base)
+        $paginator = (clone $base)
             ->whereBetween('created_at', [$period['from_carbon'], $period['to_carbon']])
             ->with(['workType', 'workspace', 'status', 'requester', 'assignee'])
             ->latest()
-            ->get();
+            ->paginate(min(max($request->integer('per_page', 20), 1), 100));
 
         return response()->json([
             'data' => [
@@ -51,7 +51,13 @@ class DepartmentActivityReportController extends Controller
                     'to' => $period['to'],
                 ],
                 'counts' => $metrics->countSnapshot($base, $period['from_carbon'], $period['to_carbon']),
-                'items' => WorkItemResource::collection($items)->resolve(),
+                'items' => WorkItemResource::collection($paginator->getCollection())->resolve(),
+            ],
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
             ],
         ]);
     }

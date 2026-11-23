@@ -50,5 +50,9 @@ class WorkItemAttachmentTest extends TestCase
         $this->get("/api/v1/work-items/{$workItemId}/attachments/{$attachmentId}/download")
             ->assertOk()
             ->assertHeader('content-disposition');
+
+        $this->get("/api/v1/work-items/{$workItemId}/attachments/{$attachmentId}/download?inline=1")
+            ->assertOk()
+            ->assertHeader('content-disposition', 'inline; filename="photo.jpg"');
     }
 }

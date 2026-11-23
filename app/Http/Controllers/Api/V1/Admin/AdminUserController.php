@@ -21,10 +21,21 @@ class AdminUserController extends Controller
     {
         abort_unless($request->user()?->can('users.manage'), 403);
 
-        $users = User::query()
+        $query = User::query()
             ->with(['roles', 'permissions', 'departments', 'workspaces'])
-            ->orderBy('name')
-            ->paginate(min($request->integer('per_page', 25), 100));
+            ->orderBy('name');
+
+        $search = trim($request->string('q')->toString());
+        if ($search !== '') {
+            $term = '%'.$search.'%';
+            $query->where(function ($inner) use ($term): void {
+                $inner->where('name', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhereHas('departments', fn ($departments) => $departments->where('name', 'like', $term));
+            });
+        }
+
+        $users = $query->paginate(min(max($request->integer('per_page', 20), 1), 100));
 
         return UserResource::collection($users);
     }

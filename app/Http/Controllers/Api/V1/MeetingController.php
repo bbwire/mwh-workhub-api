@@ -40,6 +40,7 @@ class MeetingController extends Controller
         $meeting = Meeting::query()->create([
             'title' => $request->string('title'),
             'notes' => $request->input('notes'),
+            'minutes' => $request->input('minutes'),
             'held_at' => $request->date('held_at'),
             'created_by_id' => $request->user()->id,
         ]);

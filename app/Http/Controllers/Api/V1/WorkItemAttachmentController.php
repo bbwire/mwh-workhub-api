@@ -76,7 +76,20 @@ class WorkItemAttachmentController extends Controller
             abort(404);
         }
 
-        return Storage::disk($attachment->disk)->download(
+        $disk = Storage::disk($attachment->disk);
+
+        if ($request->boolean('inline')) {
+            return $disk->response(
+                $attachment->path,
+                $attachment->original_name,
+                [
+                    'Content-Type' => $attachment->mime_type,
+                    'Content-Disposition' => 'inline; filename="'.$attachment->original_name.'"',
+                ],
+            );
+        }
+
+        return $disk->download(
             $attachment->path,
             $attachment->original_name,
         );

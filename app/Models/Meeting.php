@@ -5,12 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Meeting extends Model
 {
     protected $fillable = [
         'title',
         'notes',
+        'minutes',
         'held_at',
         'created_by_id',
     ];
@@ -30,5 +32,10 @@ class Meeting extends Model
     public function workItems(): BelongsToMany
     {
         return $this->belongsToMany(WorkItem::class, 'meeting_work_item');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(MeetingAttachment::class);
     }
 }

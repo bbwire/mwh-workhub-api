@@ -19,6 +19,7 @@ class StoreMeetingRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:10000'],
+            'minutes' => ['nullable', 'string', 'max:100000'],
             'held_at' => ['required', 'date'],
         ];
     }
